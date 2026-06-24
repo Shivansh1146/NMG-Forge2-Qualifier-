@@ -1,0 +1,10 @@
+graph TD
+    H[Human] -->|goal| SM[#sprint-main]
+    SM --> HM[Hermes Brain]
+    HM -->|task| AC[#agent-coder]
+    AC --> OC[OpenClaw Hands]
+    OC -->|result| AC
+    AC -->|status| SM
+    CI[GitHub Actions CI] -->|pass/fail| AL[#agent-log]
+    HM -->|cron every 10min| AL
+    HM -->|error-fix skill| OC
