@@ -1,5 +1,6 @@
 import React from 'react';
 import Board from './components/Board';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import './index.css';
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
       <main className="app-main">
         <Board />
       </main>
+      <SpeedInsights />
     </div>
   );
 }
