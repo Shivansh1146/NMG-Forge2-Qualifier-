@@ -1,4 +1,4 @@
-# 🚀 NMG Forge2 Qualifier — Antigravity
+# 🚀 NMG Forge2 Qualifier — Made by Shivansh
 
 [![Frontend](https://img.shields.io/badge/Frontend-React%20%7C%20Vite-blue?logo=react&style=flat-square)](https://forge2-frontend.vercel.app/)
 [![Backend](https://img.shields.io/badge/Backend-Laravel%20%7C%20PHP-red?logo=laravel&style=flat-square)](#)
