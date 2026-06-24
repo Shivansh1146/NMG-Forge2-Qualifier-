@@ -33,7 +33,7 @@ cd backend && php artisan serve
 cd frontend && npm run dev
 
 ## Live URL
-https://your-app.vercel.app
+https://forge2-frontend.vercel.app/
 
 ## Agent Loop Evidence
 See agent-log.md and slack-export/ folder
