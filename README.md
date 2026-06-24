@@ -67,7 +67,8 @@ npm run dev
 ---
 
 ## 📂 Agent Loop Evidence & Architecture
-To review the autonomous orchestration, planning, and self-improvement loops that built this application, please explore the following documentation:
-- 📜 **[Agent Logs (`agent-log.md`)](./agent-log.md)**
+*Hermes and OpenClaw were configured but the Slack loop evidence is incomplete. The Kanban application is fully functional.*
+
+To review the system architecture, please explore the following documentation:
 - 🏗 **[System Architecture (`ARCHITECTURE.md`)](./ARCHITECTURE.md)**
-- 💬 **[Slack Dialogue Exports (`slack-export/`)](./slack-export/)**
+- 📜 **[Agent Logs (`agent-log.md`)](./agent-log.md)**
