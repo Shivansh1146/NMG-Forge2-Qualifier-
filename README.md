@@ -6,6 +6,7 @@
 [![Agent Orchestration](https://img.shields.io/badge/Agents-Hermes%20%2B%20OpenClaw-FF9900?style=flat-square)](#)
 
 > **Live Application Demo:** [https://forge2-frontend.vercel.app/](https://forge2-frontend.vercel.app/)
+> **Loom Video Demo:** [Watch the Demo](https://www.loom.com/share/131aedf3ad934bd5afc6b056facdbcd7)
 
 ## 📖 What It Does
 A high-performance, Trello-style Kanban board autonomously engineered by a dual-agent AI system (**Hermes** and **OpenClaw**) coordinating transparently through a simulated Slack environment.
