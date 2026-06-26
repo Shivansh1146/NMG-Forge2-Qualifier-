@@ -1,6 +1,7 @@
 import { App } from '@slack/bolt';
 import dotenv from 'dotenv';
 import { logger } from './logger.js';
+import { generatePlan } from './hermes.js';
 
 dotenv.config();
 
@@ -31,6 +32,21 @@ export const setupSlackListeners = () => {
 
     console.log(`\n💬 Human Message:`);
     console.log(`Text: ${message.text}\n`);
+
+    // Hermes Task Trigger
+    if (message.text && message.text.startsWith('TASK:')) {
+        try {
+            logger.info('Triggering Hermes for planning');
+            await say(`*Hermes*: Acknowledged task. Generating architecture plan...`);
+            
+            const taskDesc = message.text.replace(/^TASK:\s*/i, '');
+            const plan = await generatePlan(taskDesc);
+            
+            await say(plan);
+        } catch (error) {
+            await say(`*Hermes Error*: Failed to generate plan - ${error.message}`);
+        }
+    }
   });
 
   return app;
