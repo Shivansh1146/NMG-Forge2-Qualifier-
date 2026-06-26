@@ -47,7 +47,7 @@ export async function generatePlan(taskDescription) {
     
     fs.writeFileSync(path.join(plansDir, `plan_${planId}.json`), JSON.stringify(jsonPayload, null, 2));
 
-    return planText;
+    return { planText, planId };
   } catch (error) {
     logger.error('Hermes generation failed', { error: error.message });
     throw error;

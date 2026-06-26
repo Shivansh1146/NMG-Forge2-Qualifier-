@@ -1,9 +1,16 @@
 import { App } from '@slack/bolt';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { logger } from './logger.js';
 import { generatePlan } from './hermes.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const delegationsFile = path.join(__dirname, '../logs/delegations.json');
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -12,7 +19,7 @@ const app = new App({
 });
 
 export const setupSlackListeners = () => {
-  app.message(async ({ message }) => {
+  app.message(async ({ message, say, client }) => {
     // Ignore bot messages
     if (message.bot_id || message.subtype === 'bot_message') {
       return;
@@ -40,11 +47,56 @@ export const setupSlackListeners = () => {
             await say(`*Hermes*: Acknowledged task. Generating architecture plan...`);
             
             const taskDesc = message.text.replace(/^TASK:\s*/i, '');
-            const plan = await generatePlan(taskDesc);
+            const { planText, planId } = await generatePlan(taskDesc);
             
-            await say(plan);
+            await say(planText);
+
+            // Delegate to OpenClaw
+            const agentCoderChannel = process.env.AGENT_CODER_CHANNEL_ID;
+            const agentLogChannel = process.env.AGENT_LOG_CHANNEL_ID;
+            
+            if (agentCoderChannel && agentLogChannel) {
+                const delegationMessage = `OPENCLAW_TASK\n\nTask ID: ${planId}\nOriginal User: <@${message.user}>\nTimestamp: ${new Date().toISOString()}\n\n${planText}`;
+                
+                // Send to #agent-coder
+                await client.chat.postMessage({
+                    channel: agentCoderChannel,
+                    text: delegationMessage
+                });
+                
+                // Notify #agent-log
+                await client.chat.postMessage({
+                    channel: agentLogChannel,
+                    text: `Hermes delegated task ${planId} to OpenClaw`
+                });
+
+                // Save delegation metadata
+                let delegations = [];
+                if (fs.existsSync(delegationsFile)) {
+                    try {
+                        const raw = fs.readFileSync(delegationsFile, 'utf8');
+                        if (raw.trim()) {
+                            delegations = JSON.parse(raw);
+                        }
+                    } catch (e) {
+                        logger.warn('Failed to parse delegations.json, starting fresh');
+                    }
+                }
+                
+                delegations.push({
+                    taskId: planId,
+                    user: message.user,
+                    delegatedAt: new Date().toISOString()
+                });
+                
+                fs.writeFileSync(delegationsFile, JSON.stringify(delegations, null, 2));
+                logger.info(`Successfully delegated task ${planId} to OpenClaw`);
+            } else {
+                logger.warn('Delegation skipped: AGENT_CODER_CHANNEL_ID or AGENT_LOG_CHANNEL_ID missing in .env');
+            }
         } catch (error) {
-            await say(`*Hermes Error*: Failed to generate plan - ${error.message}`);
+            logger.error('Failed to process task', { error: error.message, stack: error.stack });
+            await say(`*Hermes Error*: Failed to process task - ${error.message}`);
         }
     }
   });
