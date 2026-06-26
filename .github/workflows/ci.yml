@@ -17,10 +17,12 @@ jobs:
           php-version: '8.2'
       - name: Install dependencies
         run: cd backend && composer install
+      - name: Prepare env
+        run: cd backend && cp .env.example .env && php artisan key:generate
       - name: Create SQLite database
         run: cd backend && touch database/database.sqlite
       - name: Run migrations
-        run: cd backend && php artisan migrate
+        run: cd backend && php artisan migrate --force
       - name: Run tests
         run: cd backend && php artisan test
       - name: Post result to Slack
