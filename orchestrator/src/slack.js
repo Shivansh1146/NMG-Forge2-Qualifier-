@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { logger } from './logger.js';
 import { generatePlan } from './hermes.js';
+import { executeTask } from './openclaw.js';
 
 dotenv.config();
 
@@ -25,13 +26,15 @@ export const setupSlackListeners = () => {
       return;
     }
 
-    // Listen only in #sprint-main
-    const targetChannel = process.env.SPRINT_MAIN_CHANNEL_ID;
-    if (targetChannel && message.channel !== targetChannel) {
+    const sprintMainChannel = process.env.SPRINT_MAIN_CHANNEL_ID;
+    const agentCoderChannel = process.env.AGENT_CODER_CHANNEL_ID;
+    const agentLogChannel = process.env.AGENT_LOG_CHANNEL_ID;
+
+    if (message.channel !== sprintMainChannel && message.channel !== agentCoderChannel) {
       return; 
     }
 
-    logger.info('Received human message in target channel', { 
+    logger.info('Received message in monitored channel', { 
         channel: message.channel, 
         user: message.user, 
         text: message.text 
@@ -41,7 +44,7 @@ export const setupSlackListeners = () => {
     console.log(`Text: ${message.text}\n`);
 
     // Hermes Task Trigger
-    if (message.text && message.text.startsWith('TASK:')) {
+    if (message.channel === sprintMainChannel && message.text && message.text.startsWith('TASK:')) {
         try {
             logger.info('Triggering Hermes for planning');
             await say(`*Hermes*: Acknowledged task. Generating architecture plan...`);
@@ -97,6 +100,33 @@ export const setupSlackListeners = () => {
         } catch (error) {
             logger.error('Failed to process task', { error: error.message, stack: error.stack });
             await say(`*Hermes Error*: Failed to process task - ${error.message}`);
+        }
+    }
+
+    // OpenClaw Task Trigger
+    if (message.channel === agentCoderChannel && message.text && message.text.startsWith('OPENCLAW_TASK')) {
+        try {
+            logger.info('Triggering OpenClaw for execution');
+            
+            const taskIdMatch = message.text.match(/Task ID:\s*(.+)/i);
+            const taskId = taskIdMatch ? taskIdMatch[1].trim() : Date.now().toString();
+
+            await say(`*OpenClaw*: Received task ${taskId}. Initializing qwen2.5-coder execution...`);
+            
+            const { duration, artifactPath } = await executeTask(message.text, taskId);
+            
+            if (agentLogChannel) {
+                const summaryMsg = `*OpenClaw Execution Summary*\nTask ID: ${taskId}\nStatus: Success :white_check_mark:\nDuration: ${duration} seconds\nArtifact saved at: ${artifactPath}`;
+                await client.chat.postMessage({
+                    channel: agentLogChannel,
+                    text: summaryMsg
+                });
+            }
+            
+            await say(`*OpenClaw*: Implementation complete in ${duration}s. Details sent to log.`);
+        } catch (error) {
+            logger.error('OpenClaw failed', { error: error.message });
+            await say(`*OpenClaw Error*: Execution failed - ${error.message}`);
         }
     }
   });
