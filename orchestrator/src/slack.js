@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { logger } from './logger.js';
-import { generatePlan } from './hermes.js';
+import { generatePlan, analyzeFailure } from './hermes.js';
 import { executeTask } from './openclaw.js';
 import { parseFiles, writeFiles } from '../services/fileWriter.js';
 import { commitAndPush } from '../services/gitService.js';
@@ -23,9 +23,11 @@ const app = new App({
 
 export const setupSlackListeners = () => {
   app.message(async ({ message, say, client }) => {
-    // Ignore bot messages
+    // Ignore bot messages unless it's a CI failure report
     if (message.bot_id || message.subtype === 'bot_message') {
-      return;
+        if (!(message.text && message.text.includes('CI_FAILURE:'))) {
+            return;
+        }
     }
 
     const sprintMainChannel = process.env.SPRINT_MAIN_CHANNEL_ID;
@@ -191,6 +193,30 @@ export const setupSlackListeners = () => {
         } catch (error) {
             logger.error('OpenClaw failed', { error: error.message });
             await say(`*OpenClaw Error*: Execution failed - ${error.message}`);
+        }
+    }
+
+    // CI Failure Trigger
+    if (message.text && message.text.includes('CI_FAILURE:')) {
+        try {
+            logger.info('Triggering Hermes for CI failure analysis');
+            
+            const errorMsg = message.text.replace(/^.*CI_FAILURE:\s*/i, '');
+            await say(`*Hermes*: Analyzing CI failure...`);
+            
+            const { analysisText, failureId } = await analyzeFailure(errorMsg);
+            
+            if (agentLogChannel) {
+                await client.chat.postMessage({
+                    channel: agentLogChannel,
+                    text: `*CI Failure Analysis (ID: ${failureId})*\n\n${analysisText}`
+                });
+            }
+            
+            await say(`*Hermes*: Failure analyzed. Remediation plan posted to #agent-log.`);
+        } catch (error) {
+            logger.error('Failed to analyze CI failure', { error: error.message });
+            await say(`*Hermes Error*: Failed to analyze CI failure - ${error.message}`);
         }
     }
   });
