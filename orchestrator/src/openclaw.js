@@ -16,9 +16,12 @@ const systemPrompt = `You are OpenClaw.
 
 Generate production-ready implementation code.
 
-Return:
-* Files to create
-* Code
+Return exactly in this format:
+* Files to create:
+FILE: frontend/path/to/file.ext
+\`\`\`
+code here
+\`\`\`
 * Commands required`;
 
 export async function executeTask(taskPayload, taskId) {

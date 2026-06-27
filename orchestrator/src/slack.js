@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { logger } from './logger.js';
 import { generatePlan } from './hermes.js';
 import { executeTask } from './openclaw.js';
+import { parseFiles, writeFiles } from '../services/fileWriter.js';
 
 dotenv.config();
 
@@ -42,6 +43,40 @@ export const setupSlackListeners = () => {
 
     console.log(`\n💬 Human Message:`);
     console.log(`Text: ${message.text}\n`);
+
+    // Handle Human Approval
+    if (message.text && message.text.trim() === 'APPROVE') {
+        const pendingFile = path.join(__dirname, '../logs/pending_approval.json');
+        if (fs.existsSync(pendingFile)) {
+            try {
+                const pending = JSON.parse(fs.readFileSync(pendingFile, 'utf8'));
+                if (pending.status === 'PENDING') {
+                    await say(`*OpenClaw*: Approval received. Writing files...`);
+                    const results = writeFiles(pending.files);
+                    
+                    let summary = '*Write Results:*\n';
+                    results.forEach(r => {
+                        summary += `- ${r.filepath}: ${r.status} ${r.reason ? \`(\${r.reason})\` : ''}\n`;
+                    });
+                    await say(summary);
+                    
+                    pending.status = 'COMPLETED';
+                    fs.writeFileSync(pendingFile, JSON.stringify(pending, null, 2));
+                    
+                    // Log to #agent-log
+                    if (agentLogChannel) {
+                        await client.chat.postMessage({
+                            channel: agentLogChannel,
+                            text: `*File Write Completed*\nTask ID: ${pending.taskId}\n${summary}`
+                        });
+                    }
+                    return;
+                }
+            } catch (e) {
+                logger.error('Failed to process approval', { error: e.message });
+            }
+        }
+    }
 
     // Hermes Task Trigger
     if (message.channel === sprintMainChannel && message.text && message.text.startsWith('TASK:')) {
@@ -113,7 +148,9 @@ export const setupSlackListeners = () => {
 
             await say(`*OpenClaw*: Received task ${taskId}. Initializing qwen2.5-coder execution...`);
             
-            const { duration, artifactPath } = await executeTask(message.text, taskId);
+            const { content, duration, artifactPath } = await executeTask(message.text, taskId);
+            
+            const proposedFiles = parseFiles(content);
             
             if (agentLogChannel) {
                 const summaryMsg = `*OpenClaw Execution Summary*\nTask ID: ${taskId}\nStatus: Success :white_check_mark:\nDuration: ${duration} seconds\nArtifact saved at: ${artifactPath}`;
@@ -123,7 +160,19 @@ export const setupSlackListeners = () => {
                 });
             }
             
-            await say(`*OpenClaw*: Implementation complete in ${duration}s. Details sent to log.`);
+            if (proposedFiles.length > 0) {
+                const pendingFile = path.join(__dirname, '../logs/pending_approval.json');
+                fs.writeFileSync(pendingFile, JSON.stringify({
+                    taskId,
+                    status: 'PENDING',
+                    files: proposedFiles
+                }, null, 2));
+                
+                let fileList = proposedFiles.map(f => `- ${f.filepath}`).join('\n');
+                await say(`*OpenClaw*: Implementation ready in ${duration}s.\n\n*Proposed Files:*\n${fileList}\n\nReply \`APPROVE\` to execute these writes safely.`);
+            } else {
+                await say(`*OpenClaw*: Implementation complete in ${duration}s. Details sent to log. No file writes detected.`);
+            }
         } catch (error) {
             logger.error('OpenClaw failed', { error: error.message });
             await say(`*OpenClaw Error*: Execution failed - ${error.message}`);
