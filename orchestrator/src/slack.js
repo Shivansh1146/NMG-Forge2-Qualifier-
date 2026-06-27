@@ -7,6 +7,7 @@ import { logger } from './logger.js';
 import { generatePlan } from './hermes.js';
 import { executeTask } from './openclaw.js';
 import { parseFiles, writeFiles } from '../services/fileWriter.js';
+import { commitAndPush } from '../services/gitService.js';
 
 dotenv.config();
 
@@ -63,13 +64,27 @@ export const setupSlackListeners = () => {
                     pending.status = 'COMPLETED';
                     fs.writeFileSync(pendingFile, JSON.stringify(pending, null, 2));
                     
+                    // Autonomous Git Workflow
+                    await say(`*OpenClaw*: Files written safely. Initiating autonomous Git commit and push...`);
+                    const successfulWrites = results.filter(r => r.status === 'success');
+                    const gitResult = await commitAndPush(pending.taskId, successfulWrites);
+                    
+                    let gitMsg = '';
+                    if (gitResult.success) {
+                        gitMsg = `\n*Git Status:* Successfully committed (Hash: \`${gitResult.commit}\`) and pushed to remote. GitHub Actions CI pipeline triggered.`;
+                    } else {
+                        gitMsg = `\n*Git Error:* Failed to commit/push - ${gitResult.error}`;
+                    }
+                    
                     // Log to #agent-log
                     if (agentLogChannel) {
                         await client.chat.postMessage({
                             channel: agentLogChannel,
-                            text: `*File Write Completed*\nTask ID: ${pending.taskId}\n${summary}`
+                            text: `*File Write Completed*\nTask ID: ${pending.taskId}\n${summary}${gitMsg}`
                         });
                     }
+                    
+                    await say(`*OpenClaw Workflow Complete*${gitMsg}`);
                     return;
                 }
             } catch (e) {
