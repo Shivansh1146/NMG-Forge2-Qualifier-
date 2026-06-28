@@ -1,8 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import ollama from 'ollama';
+import axios from 'axios';
 import { logger } from './logger.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,22 +27,34 @@ code here
 \`\`\`
 * Commands required`;
 
+const EASTROUTER_API_KEY = process.env.EASTROUTER_API_KEY;
+const EASTROUTER_BASE_URL = process.env.EASTROUTER_BASE_URL || 'https://api.eastrouter.com/v1';
+
 export async function executeTask(taskPayload, taskId) {
   const startTime = Date.now();
   
   try {
     logger.info(`OpenClaw started execution for task ${taskId}`);
     
-    const response = await ollama.chat({
-      model: 'qwen2.5-coder',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: taskPayload }
-      ]
-    });
+    const response = await axios.post(
+      `${EASTROUTER_BASE_URL}/chat/completions`,
+      {
+        model: 'moonshotai/kimi-k2.7-code',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: taskPayload }
+        ]
+      },
+      {
+        headers: {
+          'Authorization': `Bearer sk-er_0338c612_a736dcc097e9c97abaae24bb47367aabeec470ac82777a7f`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    const content = response.message.content;
+    const content = response.data.choices[0].message.content;
     
     // Save generated artifact
     const artifactPath = path.join(generatedDir, `artifact_${taskId || Date.now()}.md`);

@@ -25,7 +25,7 @@ export const setupSlackListeners = () => {
   app.message(async ({ message, say, client }) => {
     // Ignore bot messages unless it's a CI failure report
     if (message.bot_id || message.subtype === 'bot_message') {
-        if (!(message.text && message.text.includes('CI_FAILURE:'))) {
+        if (!(message.text && (message.text.includes('CI_FAILURE:') || message.text.startsWith('TASK:')))) {
             return;
         }
     }
@@ -34,7 +34,7 @@ export const setupSlackListeners = () => {
     const agentCoderChannel = process.env.AGENT_CODER_CHANNEL_ID;
     const agentLogChannel = process.env.AGENT_LOG_CHANNEL_ID;
 
-    if (message.channel !== sprintMainChannel && message.channel !== agentCoderChannel) {
+    if (message.channel !== sprintMainChannel && message.channel !== agentCoderChannel && message.channel_type !== 'im') {
       return; 
     }
 
@@ -59,7 +59,8 @@ export const setupSlackListeners = () => {
                     
                     let summary = '*Write Results:*\n';
                     results.forEach(r => {
-                        summary += `- ${r.filepath}: ${r.status} ${r.reason ? \`(\${r.reason})\` : ''}\n`;
+                        const reasonStr = r.reason ? '(' + r.reason + ')' : '';
+                        summary += `- ${r.filepath}: ${r.status} ${reasonStr}\n`;
                     });
                     await say(summary);
                     
@@ -96,12 +97,15 @@ export const setupSlackListeners = () => {
     }
 
     // Hermes Task Trigger
-    if (message.channel === sprintMainChannel && message.text && message.text.startsWith('TASK:')) {
+    const textStr = message.text || '';
+    const isHermesTrigger = textStr.startsWith('TASK:') || textStr.includes('<@') || textStr.toLowerCase().includes('@hermes') || message.channel_type === 'im';
+
+    if ((message.channel === sprintMainChannel || message.channel_type === 'im') && isHermesTrigger) {
         try {
             logger.info('Triggering Hermes for planning');
             await say(`*Hermes*: Acknowledged task. Generating architecture plan...`);
             
-            const taskDesc = message.text.replace(/^TASK:\s*/i, '');
+            const taskDesc = textStr.replace(/^TASK:\s*/i, '').replace(/<@[^>]+>\s*/g, '').trim();
             const { planText, planId } = await generatePlan(taskDesc);
             
             await say(planText);
