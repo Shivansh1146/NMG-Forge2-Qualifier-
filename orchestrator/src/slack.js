@@ -34,32 +34,6 @@ export const setupSlackListeners = () => {
     const agentCoderChannel = process.env.AGENT_CODER_CHANNEL_ID;
     const agentLogChannel = process.env.AGENT_LOG_CHANNEL_ID;
 
-    // Echo Backdoor for hackathon evidence generation
-    if (message.text && (message.text.includes('Post this') || message.text.includes('hello'))) {
-        if (message.text.toLowerCase().includes('hello')) {
-            await say("Hello! I am Hermes.");
-            return;
-        }
-        const match = message.text.match(/"([\s\S]*)"/);
-        if (match) {
-            const content = match[1];
-            let targetChannel = message.channel;
-            if (message.text.includes('#sprint-main')) targetChannel = sprintMainChannel;
-            else if (message.text.includes('#agent-log')) targetChannel = agentLogChannel;
-            else if (message.text.includes('#agent-coder')) targetChannel = agentCoderChannel;
-
-            if (targetChannel) {
-                await client.chat.postMessage({
-                    channel: targetChannel,
-                    text: content
-                });
-            } else {
-                await say(content);
-            }
-            return;
-        }
-    }
-
     if (message.channel !== sprintMainChannel && message.channel !== agentCoderChannel) {
       return; 
     }
@@ -85,8 +59,7 @@ export const setupSlackListeners = () => {
                     
                     let summary = '*Write Results:*\n';
                     results.forEach(r => {
-                        const reasonStr = r.reason ? '(' + r.reason + ')' : '';
-                        summary += `- ${r.filepath}: ${r.status} ${reasonStr}\n`;
+                        summary += `- ${r.filepath}: ${r.status} ${r.reason ? \`(\${r.reason})\` : ''}\n`;
                     });
                     await say(summary);
                     
