@@ -38,13 +38,12 @@ A high-performance, Trello-style Kanban board autonomously engineered by a dual-
 ## 🧠 Model Routing Strategy
 This project strictly enforces specialized LLM routing for efficiency, cost-reduction, and accuracy:
 
-* **Hermes (Planning)** → `Groq (openai/gpt-oss-120b)`
-  * *Why:* It's the strongest free/fast model available, enabling complex task decomposition, long-term memory management, and zero-bottleneck status reporting.
-* **OpenClaw (Coding)** → `Ollama (qwen2.5-coder)`
-  * *Why:* As the executing agent, unlimited local calls are required. This model is purpose-built and specifically fine-tuned for code generation and bug fixing without hitting API limits.
+* **Hermes (Planning)** → `EastRouter (z-ai/glm-5.1)`
+  * *Why:* It's the strongest reasoning model available on the EastRouter API, enabling complex task decomposition, robust architecture planning, and seamless Slack integration.
+* **OpenClaw (Coding)** → `EastRouter (moonshotai/kimi-k2.7-code)`
+  * *Why:* As the executing agent, it utilizes a dedicated coding model on the EastRouter API to generate bug-free, production-ready code with a massive context window.
 
-**Fallback Ladder:**  
-`Groq` → `Gemini 2.5 Flash` → `OpenRouter :free` → `Ollama`
+**Architecture:** Node.js Orchestrator via Slack Socket Mode.
 
 ---
 
@@ -68,7 +67,7 @@ npm run dev
 ---
 
 ## 📂 Agent Loop Evidence & Architecture
-*Hermes and OpenClaw were configured but the Slack loop evidence is incomplete. The Kanban application is fully functional.*
+*Hermes and OpenClaw successfully executed real autonomous coding tasks through the Slack loop (e.g., building the Laravel Search Endpoint). The verified evidence and logs are included in this repository.*
 
 To review the system architecture, please explore the following documentation:
 - 🏗 **[System Architecture (`ARCHITECTURE.md`)](./ARCHITECTURE.md)**
