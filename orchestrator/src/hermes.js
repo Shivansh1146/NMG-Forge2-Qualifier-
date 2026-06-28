@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import axios from 'axios';
 import { logger } from './logger.js';
 import dotenv from 'dotenv';
 
@@ -22,17 +22,33 @@ if (!fs.existsSync(failuresDir)) {
 
 const hermesLogFile = path.join(logsDir, 'hermes.log');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-pro",
-    systemInstruction: "You are Hermes, an expert AI software architect.\n\nGenerate:\n\n## Task Summary\n\n## Implementation Plan\n\n## Files To Modify\n\n## Risks\n\n## Next Action"
-});
+const EASTROUTER_API_KEY = process.env.EASTROUTER_API_KEY;
+const EASTROUTER_BASE_URL = process.env.EASTROUTER_BASE_URL || 'https://api.eastrouter.com/v1';
+
+async function callEastRouter(systemInstruction, userMessage) {
+  const response = await axios.post(
+    `${EASTROUTER_BASE_URL}/chat/completions`,
+    {
+      model: 'claude-opus-4-6',
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: userMessage }
+      ]
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${EASTROUTER_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  return response.data.choices[0].message.content;
+}
 
 export async function generatePlan(taskDescription) {
   try {
-    const result = await model.generateContent(`Task:\n${taskDescription}`);
-    const response = await result.response;
-    const planText = response.text();
+    const systemInstruction = "You are Hermes, an expert AI software architect.\n\nGenerate:\n\n## Task Summary\n\n## Implementation Plan\n\n## Files To Modify\n\n## Risks\n\n## Next Action";
+    const planText = await callEastRouter(systemInstruction, `Task:\n${taskDescription}`);
 
     const timestamp = new Date().toISOString();
     
@@ -66,14 +82,8 @@ export async function analyzeFailure(errorMessage) {
       skillContext = fs.readFileSync(skillFile, 'utf8');
     }
 
-    const failureModel = genAI.getGenerativeModel({
-        model: "gemini-1.5-pro",
-        systemInstruction: `You are Hermes. You must analyze the following CI/CD failure based on this skill definition:\n\n${skillContext}\n\nReturn:\n* Error Classification\n* Root Cause Analysis\n* Remediation Plan`
-    });
-
-    const result = await failureModel.generateContent(`Error Message:\n${errorMessage}`);
-    const response = await result.response;
-    const analysisText = response.text();
+    const systemInstruction = `You are Hermes. You must analyze the following CI/CD failure based on this skill definition:\n\n${skillContext}\n\nReturn:\n* Error Classification\n* Root Cause Analysis\n* Remediation Plan`;
+    const analysisText = await callEastRouter(systemInstruction, `Error Message:\n${errorMessage}`);
 
     const failureId = Date.now();
     const timestamp = new Date().toISOString();
