@@ -19,13 +19,14 @@ const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   appToken: process.env.SLACK_APP_TOKEN,
   socketMode: true,
+  ignoreSelf: false
 });
 
 export const setupSlackListeners = () => {
   app.message(async ({ message, say, client }) => {
     // Ignore bot messages unless it's a CI failure report
     if (message.bot_id || message.subtype === 'bot_message') {
-        if (!(message.text && (message.text.includes('CI_FAILURE:') || message.text.startsWith('TASK:')))) {
+        if (!(message.text && (message.text.includes('CI_FAILURE:') || message.text.startsWith('TASK:') || message.text.startsWith('OPENCLAW_TASK')))) {
             return;
         }
     }

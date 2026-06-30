@@ -39,7 +39,8 @@ async function callEastRouter(systemInstruction, userMessage) {
       headers: {
         'Authorization': `Bearer sk-er_0338c612_a736dcc097e9c97abaae24bb47367aabeec470ac82777a7f`,
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: 60000
     }
   );
   return response.data.choices[0].message.content;
