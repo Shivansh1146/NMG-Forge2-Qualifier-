@@ -40,6 +40,7 @@ This project is powered by two distinct AI personas routed through the high-perf
 ### 1. The Autonomous Pipeline
 - **Slack Socket Mode Integration**: Real-time communication between the Human, Hermes, and OpenClaw in dedicated Slack channels (`#sprint-main`, `#agent-coder`, `#agent-log`).
 - **Zero-Touch Deployments**: OpenClaw securely writes files locally, commits them autonomously, and pushes to remote, triggering GitHub Actions.
+- **Resilient Execution**: Enforced strict timeout boundaries to guarantee zero downtime or lockups during API inference.
 
 ### 2. The Application (Kanban Board)
 - **Dynamic Board Management**: Intuitive *To Do*, *Doing*, and *Done* columns with live badge tracking.
