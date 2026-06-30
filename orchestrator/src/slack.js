@@ -49,7 +49,7 @@ export const setupSlackListeners = () => {
     console.log(`Text: ${message.text}\n`);
 
     // Handle Human Approval
-    if (message.text && message.text.trim() === 'APPROVE') {
+    if (message.text && message.text.toUpperCase().includes('APPROVE')) {
         const pendingFile = path.join(__dirname, '../logs/pending_approval.json');
         if (fs.existsSync(pendingFile)) {
             try {

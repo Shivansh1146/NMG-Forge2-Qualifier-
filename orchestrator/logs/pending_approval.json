@@ -1,0 +1,10 @@
+{
+  "taskId": "1782785626309",
+  "status": "COMPLETED",
+  "files": [
+    {
+      "filepath": "frontend/src/App.jsx",
+      "content": "import React from 'react';\nimport Board from './components/Board';\nimport './index.css';\n\nfunction App() {\n  return (\n    <div className=\"app-container\">\n      <header className=\"app-header\">\n        <h1>NMG Forge Kanban Board</h1>\n      </header>\n      <main className=\"app-main\">\n        <Board />\n      </main>\n    </div>\n  );\n}\n\nexport default App;\n"
+    }
+  ]
+}
